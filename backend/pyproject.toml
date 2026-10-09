@@ -1,0 +1,36 @@
+[project]
+name = "legal-acts-ingest"
+version = "0.1.0"
+description = "Pobieranie aktów prawnych z API ELI Sejmu (Dziennik Ustaw, Monitor Polski) do Supabase"
+requires-python = ">=3.11"
+dependencies = [
+    "requests>=2.32",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "responses>=0.25",
+    "ruff>=0.6",
+]
+
+[project.scripts]
+legal-acts-ingest = "legal_acts_ingest.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

@@ -1,0 +1,56 @@
+@import 'tailwindcss';
+
+@theme {
+  /* Kolorystyka tygrysa: pomarańcz futra, czerń pasów, biel podbrzusza */
+  --color-tiger-50: #fff8ed;
+  --color-tiger-100: #ffedd0;
+  --color-tiger-200: #ffd7a0;
+  --color-tiger-300: #ffba65;
+  --color-tiger-400: #ff9429;
+  --color-tiger-500: #f97316;
+  --color-tiger-600: #e25406;
+  --color-tiger-700: #bb3c07;
+  --color-tiger-800: #94300e;
+  --color-tiger-900: #78290f;
+
+  --color-stripe-700: #2b1d10;
+  --color-stripe-800: #1c1309;
+  --color-stripe-900: #110b05;
+  --color-stripe-950: #080502;
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  --animate-prowl: prowl 18s ease-in-out infinite alternate;
+
+  @keyframes prowl {
+    from {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    to {
+      transform: translate3d(-3%, 2%, 0) scale(1.08);
+    }
+  }
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    @apply bg-tiger-50 text-stripe-900 font-sans antialiased;
+  }
+}
+
+@utility claw-marks {
+  /*
+   * Cztery nieregularne, skośne smugi — ślad pazura, nie powtarzalny wzór.
+   * Różne kąty i szerokości sprawiają, że oko nie czyta tego jako pasków.
+   */
+  background-repeat: no-repeat;
+  background-image:
+    linear-gradient(118deg, transparent 0 40%, var(--color-tiger-300) 43% 45.5%, transparent 48%),
+    linear-gradient(111deg, transparent 0 54%, var(--color-tiger-200) 57% 62%, transparent 65%),
+    linear-gradient(124deg, transparent 0 69%, var(--color-tiger-300) 71% 72.5%, transparent 75%),
+    linear-gradient(115deg, transparent 0 81%, var(--color-tiger-200) 84% 88%, transparent 91%);
+}
