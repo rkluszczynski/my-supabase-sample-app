@@ -82,12 +82,33 @@ cp .env.example .env     # uzupełnij SUPABASE_URL i SUPABASE_SECRET_KEY
 ### Docker
 
 Backend jest instalowany do tego samego obrazu co frontend. Domyślnie kontener startuje UI,
-ale komendę można nadpisać i użyć obrazu jako joba wsadowego:
+ale jednocześnie uruchamia też w tle cron dla batcha. Harmonogram wewnątrz kontenera:
+**04:17, 10:17, 16:17 i 22:17 czasu CET**.
+
+```cron
+CRON_TZ=CET
+17 4,10,16,22 * * * /app/backend/run_ingest.sh >> /var/log/legal-acts-ingest.log 2>&1
+```
+
+Do działania cron potrzebuje zmiennych backendowych przekazanych do kontenera, więc przy
+normalnym uruchomieniu obrazu warto podać również `SUPABASE_URL` i `SUPABASE_SECRET_KEY`.
 
 ```bash
 cd ..
 docker build -t my-supabase-sample-app .
 
+docker run --rm -p 4173:4173 \
+  -e PORT=4173 \
+  -e VITE_SUPABASE_URL=https://<project-ref>.supabase.co \
+  -e VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx \
+  -e SUPABASE_URL=https://<project-ref>.supabase.co \
+  -e SUPABASE_SECRET_KEY=sb_secret_xxx \
+  my-supabase-sample-app
+```
+
+Komendę nadal można nadpisać i użyć obrazu jako jednorazowego joba wsadowego:
+
+```bash
 # Podgląd bez zapisu
 docker run --rm my-supabase-sample-app legal-acts-ingest --dry-run
 
@@ -140,7 +161,8 @@ niedostępne źródło, a jeszcze inaczej na odmowę zapisu.
 ### Cron
 
 ```bash
-15 6 * * * /ścieżka/do/backend/run_ingest.sh >> /var/log/legal-acts-ingest.log 2>&1
+CRON_TZ=CET
+17 4,10,16,22 * * * /app/backend/run_ingest.sh >> /var/log/legal-acts-ingest.log 2>&1
 ```
 
 ---

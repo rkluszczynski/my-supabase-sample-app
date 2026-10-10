@@ -17,7 +17,8 @@ npm run dev
 ### Docker
 
 Frontend nie ma osobnego obrazu — korzysta ze wspólnego `Dockerfile` w katalogu nadrzędnym.
-Domyślna komenda kontenera uruchamia właśnie ten interfejs.
+Domyślna komenda kontenera uruchamia właśnie ten interfejs, a równolegle startuje też cron
+backendu dla wsadowego pobierania danych.
 
 ```bash
 cd ..
@@ -27,6 +28,8 @@ docker run --rm -p 4173:4173 \
   -e PORT=4173 \
   -e VITE_SUPABASE_URL=https://<project-ref>.supabase.co \
   -e VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx \
+  -e SUPABASE_URL=https://<project-ref>.supabase.co \
+  -e SUPABASE_SECRET_KEY=sb_secret_xxx \
   my-supabase-sample-app
 ```
 

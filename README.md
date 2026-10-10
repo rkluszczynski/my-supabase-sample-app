@@ -211,7 +211,8 @@ Cron: `15 6 * * * /ścieżka/do/backend/run_ingest.sh >> /var/log/legal-acts-ing
 Jeden obraz może zawierać oba komponenty:
 
 - **frontend** jest budowany do statycznych plików i uruchamiany przy starcie kontenera,
-- **backend** (`legal-acts-ingest`) jest zainstalowany w tym samym obrazie i można go wywołać ręcznie lub z osobnego joba.
+- **backend** (`legal-acts-ingest`) jest zainstalowany w tym samym obrazie,
+- **cron** uruchamia pobieranie cyklicznie o **04:17, 10:17, 16:17 i 22:17 czasu CET**.
 
 ```bash
 cd my-supabase-sample-app
@@ -221,10 +222,18 @@ docker run --rm -p 4173:4173 \
   -e PORT=4173 \
   -e VITE_SUPABASE_URL=https://<project-ref>.supabase.co \
   -e VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx \
+  -e SUPABASE_URL=https://<project-ref>.supabase.co \
+  -e SUPABASE_SECRET_KEY=sb_secret_xxx \
   my-supabase-sample-app
 ```
 
-Po starcie kontener serwuje frontend na porcie `4173`.
+Po starcie kontener serwuje frontend na porcie `4173` i jednocześnie uruchamia `crond`.
+Harmonogram batcha:
+
+```cron
+CRON_TZ=CET
+17 4,10,16,22 * * * /app/backend/run_ingest.sh >> /var/log/legal-acts-ingest.log 2>&1
+```
 
 Backend jest dostępny wewnątrz obrazu jako polecenie:
 
