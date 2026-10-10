@@ -1,16 +1,16 @@
 # my-supabase-sample-app
 
-Przykład stosu technologicznego: **React + TypeScript + Tailwind CSS + Supabase**,
-z procesem wsadowym w **Pythonie**. Podział na dwie jednostki wdrożeniowe — zgodnie
-z wymaganiem modularności.
+Aplikacja przykładowa do nauki stosu technologicznego: **React + TypeScript + Tailwind CSS + Supabase**,
+z procesem wsadowym w **Pythonie**. Podział na dwie jednostki wdrożeniowe — frontend i backend
+działające na zasadzie klucza `sb_publishable_` (odczyt) vs. `sb_secret_` (zapis).
 
 | Katalog                   | Co zawiera                                                              |
 | ------------------------- | ----------------------------------------------------------------------- |
 | [`frontend/`](./frontend) | React 19 + TypeScript + Tailwind 4 + Supabase Auth, trzy widoki          |
-| [`backend/`](./backend)   | migracja SQL z RLS oraz `legal-acts-ingest` — pobieranie aktów prawnych    |
+| [`backend/`](./backend)   | migracja SQL z RLS oraz `legal-acts-ingest` — proces pobierania danych  |
 
-**Dziedzina przykładu:** akty prawne publikowane w **Dzienniku Ustaw** i **Monitorze
-Polskim**, pobierane z [API ELI Sejmu](https://api.sejm.gov.pl/eli).
+**Domena przykładu:** akty prawne publikowane w **Dzienniku Ustaw** i **Monitorze
+Polskim**, pobierane z [API ELI Sejmu](https://api.sejm.gov.pl/eli) i wyświetlane w interfejsie.
 
 ---
 
@@ -206,6 +206,38 @@ Cron: `15 6 * * * /ścieżka/do/backend/run_ingest.sh >> /var/log/legal-acts-ing
 
 ## 6. Uruchomienie
 
+### Docker
+
+Jeden obraz może zawierać oba komponenty:
+
+- **frontend** jest budowany do statycznych plików i uruchamiany przy starcie kontenera,
+- **backend** (`legal-acts-ingest`) jest zainstalowany w tym samym obrazie i można go wywołać ręcznie lub z osobnego joba.
+
+```bash
+cd my-supabase-sample-app
+docker build -t my-supabase-sample-app .
+
+docker run --rm -p 4173:4173 \
+  -e PORT=4173 \
+  -e VITE_SUPABASE_URL=https://<project-ref>.supabase.co \
+  -e VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx \
+  my-supabase-sample-app
+```
+
+Po starcie kontener serwuje frontend na porcie `4173`.
+
+Backend jest dostępny wewnątrz obrazu jako polecenie:
+
+```bash
+docker run --rm \
+  --env-file backend/.env.example \
+  my-supabase-sample-app \
+  legal-acts-ingest --dry-run
+```
+
+Jeżeli chcesz używać tego samego obrazu zarówno do UI, jak i do batcha, nadpisujesz komendę
+startową kontenera: domyślnie uruchamia się frontend, a dla wsadu wywołujesz `legal-acts-ingest ...`.
+
 ### Krok 1 — baza
 
 Supabase Studio → SQL Editor → wykonaj
@@ -218,7 +250,7 @@ cd backend
 python3 -m venv .venv
 .venv/bin/pip install -e ".[dev]"
 cp .env.example .env          # SUPABASE_URL + SUPABASE_SECRET_KEY
-.venv/bin/python -m bidtiger_ingest
+.venv/bin/python -m legal_acts_ingest
 ```
 
 ### Krok 3 — frontend
@@ -292,6 +324,7 @@ Nad tabelą filtr: Wszystkie · Dziennik Ustaw · Monitor Polski.
 
 ```
 my-supabase-sample-app/
+├── Dockerfile                            wspólny obraz: frontend + backend CLI
 ├── backend/
 │   ├── pyproject.toml                 pakiet legal-acts-ingest
 │   ├── run_ingest.sh                  opakowanie pod crona

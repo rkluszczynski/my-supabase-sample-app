@@ -1,10 +1,11 @@
 # my-supabase-sample-app — backend
 
-Dwie rzeczy:
+Dwa komponenty:
 
-1. **Schemat bazy** z politykami Row Level Security.
+1. **Schemat bazy** (`SQL`) z politykami Row Level Security — definiuje tabele i reguły dostępu.
 2. **`legal-acts-ingest`** — aplikacja Pythona, która wsadowo pobiera akty prawne
-   z API ELI Sejmu (Dziennik Ustaw, Monitor Polski) i zapisuje je do Supabase.
+   z [API ELI Sejmu](https://api.sejm.gov.pl/eli) (Dziennik Ustaw, Monitor Polski) 
+   i zapisuje je do Supabase za pomocą klucza `sb_secret_`.
 
 Pełny opis modelu dostępu i kluczy: [`README.md`](../README.md) w katalogu nadrzędnym.
 
@@ -69,14 +70,36 @@ cp .env.example .env     # uzupełnij SUPABASE_URL i SUPABASE_SECRET_KEY
 
 ```bash
 # Podgląd bez zapisu — nie wymaga żadnych kluczy
-.venv/bin/python -m bidtiger_ingest --dry-run
+.venv/bin/python -m legal_acts_ingest --dry-run
 
 # Pełny przebieg: pobranie i zapis do Supabase
-.venv/bin/python -m bidtiger_ingest
+.venv/bin/python -m legal_acts_ingest
 
 # Konkretny zakres i tylko Monitor Polski
-.venv/bin/python -m bidtiger_ingest --date-from 2026-09-01 --publishers MP
+.venv/bin/python -m legal_acts_ingest --date-from 2026-09-01 --publishers MP
 ```
+
+### Docker
+
+Backend jest instalowany do tego samego obrazu co frontend. Domyślnie kontener startuje UI,
+ale komendę można nadpisać i użyć obrazu jako joba wsadowego:
+
+```bash
+cd ..
+docker build -t my-supabase-sample-app .
+
+# Podgląd bez zapisu
+docker run --rm my-supabase-sample-app legal-acts-ingest --dry-run
+
+# Pełny zapis do Supabase
+docker run --rm \
+  -e SUPABASE_URL=https://<project-ref>.supabase.co \
+  -e SUPABASE_SECRET_KEY=sb_secret_xxx \
+  my-supabase-sample-app \
+  legal-acts-ingest --format none
+```
+
+Jeżeli używasz pliku `.env`, najwygodniej przekazać go przez `--env-file backend/.env`.
 
 Wynik `--dry-run` to dokładnie te kolumny, które pokazuje ekran aplikacji:
 

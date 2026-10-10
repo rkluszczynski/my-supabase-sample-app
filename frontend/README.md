@@ -1,9 +1,10 @@
 # my-supabase-sample-app — frontend
 
-React 19 + TypeScript + Tailwind CSS 4 + Vite 7 + Supabase Auth.
+React 19 + TypeScript + Tailwind CSS 4 + Vite 7, demonstrujące autentykację Supabase
+i Row Level Security w praktyce.
 
 Model dostępu, klucze i polityki RLS opisuje [`README.md`](../README.md) w katalogu nadrzędnym.
-Ten plik dotyczy wyłącznie frontendu.
+Ten plik dotyczy wyłącznie interfejsu.
 
 ## Uruchomienie
 
@@ -12,6 +13,24 @@ npm install
 cp .env.example .env
 npm run dev
 ```
+
+### Docker
+
+Frontend nie ma osobnego obrazu — korzysta ze wspólnego `Dockerfile` w katalogu nadrzędnym.
+Domyślna komenda kontenera uruchamia właśnie ten interfejs.
+
+```bash
+cd ..
+docker build -t my-supabase-sample-app .
+
+docker run --rm -p 4173:4173 \
+  -e PORT=4173 \
+  -e VITE_SUPABASE_URL=https://<project-ref>.supabase.co \
+  -e VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx \
+  my-supabase-sample-app
+```
+
+Po starcie frontend jest dostępny pod `http://localhost:4173`.
 
 | Polecenie           | Co robi                               |
 | ------------------- | ------------------------------------- |
@@ -48,7 +67,8 @@ dostępu do danych broni RLS w bazie.
 
 ## Listing aktów prawnych
 
-Dane pochodzą z tabeli `legal_acts`, którą napełnia proces wsadowy `legal-acts-ingest`
+Każdy zalogowany użytkownik widzi wspólny listing aktów prawnych z Dziennika Ustaw i Monitoru Polskiego.
+Dane pochodzą z tabeli `legal_acts` — napełnianej przez proces wsadowy `legal-acts-ingest`
 z [API ELI Sejmu](https://api.sejm.gov.pl/eli) — zob. [`backend/README.md`](../backend/README.md).
 
 | Kolumna                 | Pole                                  | Przykład                                      |
