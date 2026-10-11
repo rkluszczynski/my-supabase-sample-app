@@ -7,7 +7,7 @@ import type { LegalAct, Publisher } from '../lib/database.types'
  * Listing aktów prawnych — wspólny dla wszystkich zalogowanych użytkowników.
  *
  * Zapytanie nie filtruje po użytkowniku: zakres widoczności wymusza polityka
- * `legal_acts_select_authenticated` po stronie bazy. Gdyby ktoś wywołał to samo
+ * `s2app_legal_acts_select_authenticated` po stronie bazy. Gdyby ktoś wywołał to samo
  * zapytanie bez ważnej sesji, dostałby pusty zbiór, nie błąd.
  *
  * Dane napełnia proces wsadowy `legal-acts-ingest` z API ELI Sejmu.
@@ -34,7 +34,7 @@ export function useLegalActs(publisher: Publisher | 'ALL' = 'ALL') {
       }
 
       let query = supabase
-        .from('legal_acts')
+        .from('s2app_legal_acts')
         .select('*')
         .order('promulgation_date', { ascending: false, nullsFirst: false })
         .order('position', { ascending: false })

@@ -41,11 +41,11 @@ export function NotesPage({ user }: NotesPageProps) {
   return (
     <>
       <header>
-        <h1 className="text-3xl font-bold tracking-tight text-stripe-900">Moje notatki</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-stripe-900">Notatki</h1>
         <p className="mt-2 text-stripe-700/70">
-          Widoczne wyłącznie dla Ciebie — polityki{' '}
-          <code className="rounded bg-tiger-100 px-1 text-tiger-800">notes_*_own</code>. Zapytanie
-          innego użytkownika o te wiersze zwraca pusty zbiór, nie błąd uprawnień.
+          Visible only to you — the{' '}
+          <code className="rounded bg-tiger-100 px-1 text-tiger-800">s2app_notes_*_own</code> policies
+          ensure that another user gets an empty result instead of a permission error.
         </p>
       </header>
 

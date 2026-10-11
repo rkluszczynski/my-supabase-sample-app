@@ -16,13 +16,11 @@ export function DashboardPage() {
   return (
     <>
       <header>
-        <h1 className="text-3xl font-bold tracking-tight text-stripe-900">
-          Opublikowane akty prawne
-        </h1>
+        <h1 className="text-3xl font-bold tracking-tight text-stripe-900">Akty Prawne</h1>
         <p className="mt-2 text-stripe-700/70">
-          Dziennik Ustaw i Monitor Polski z ostatnich dwóch tygodni. Dane pobiera proces wsadowy{' '}
-          <code className="rounded bg-tiger-100 px-1 text-tiger-800">legal-acts-ingest</code> z API ELI
-          Sejmu.
+          Latest official records from the last two weeks. Data is fetched by the batch process{' '}
+          <code className="rounded bg-tiger-100 px-1 text-tiger-800">legal-acts-ingest</code> from the ELI
+          API.
         </p>
       </header>
 
@@ -55,7 +53,7 @@ export function DashboardPage() {
         <p className="mt-10 text-stripe-700/60">Ładowanie listingu…</p>
       ) : acts.length === 0 ? (
         <p className="mt-10 rounded-2xl border border-tiger-200 bg-white p-8 text-center text-stripe-700/60">
-          Brak aktów w tym zakresie. Uruchom proces wsadowy:{' '}
+          Brak aktów prawnych w tym zakresie. Uruchom proces wsadowy:{' '}
           <code className="rounded bg-tiger-100 px-1 text-tiger-800">python -m legal_acts_ingest</code>
         </p>
       ) : (

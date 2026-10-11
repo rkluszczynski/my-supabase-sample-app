@@ -1,29 +1,28 @@
 -- =============================================================================
--- BidTiger — przykładowy schemat z Row Level Security
+-- Example schema with Row Level Security
 -- =============================================================================
--- Uruchomienie: Supabase Studio → SQL Editor → wklej i wykonaj,
--- albo `supabase db push` przy użyciu Supabase CLI.
+-- Run: Supabase Studio → SQL Editor → paste and execute,
+-- or `supabase db push` via Supabase CLI.
 --
--- Model dostępu:
---   public.legal_acts — listing aktów prawnych, wspólny dla WSZYSTKICH ZALOGOWANYCH
---   public.notes      — notatki widoczne WYŁĄCZNIE dla ich autora
+-- Access model:
+--   public.s2app_legal_acts — shared legal acts listing for all authenticated users
+--   public.s2app_notes      — notes visible only to their owner
 --
--- Źródło danych: API ELI Sejmu (https://api.sejm.gov.pl/eli) — Dziennik Ustaw
--- i Monitor Polski. Wypełnia je proces wsadowy `bidtiger-ingest`.
+-- Data source: ELI API of the Sejm (https://api.sejm.gov.pl/eli) — Dziennik Ustaw
+-- and Monitor Polski. Populated by the batch process `legal-acts-ingest`.
 --
--- Skrypt jest idempotentny: można go wykonać ponownie bez błędu.
+-- The script is idempotent: it can be executed repeatedly without error.
 -- =============================================================================
 
 
 -- -----------------------------------------------------------------------------
--- 1. LEGAL_ACTS — listing aktów prawnych, wspólny dla zalogowanych
+-- 1. s2app_legal_acts — shared legal acts list for authenticated users
 -- -----------------------------------------------------------------------------
 
-create table if not exists public.legal_acts (
-  -- Identyfikator ELI (np. "DU/2026/1308") jest kluczem naturalnym i stabilnym
-  -- w źródle, więc to on nosi ograniczenie unikalności. Dzięki temu ponowne
-  -- uruchomienie procesu dla nakładającego się zakresu dat jest UPSERT-em,
-  -- a nie naruszeniem klucza.
+create table if not exists public.s2app_legal_acts (
+  -- ELI identifier (e.g. "DU/2026/1308") is the natural and stable key in the source.
+  -- That is why it carries the uniqueness constraint. This allows repeated batch
+  -- runs over overlapping date ranges to perform an UPSERT instead of violating the key.
   eli                text        primary key,
 
   publisher          text        not null check (publisher in ('DU', 'MP')),
@@ -46,103 +45,103 @@ create table if not exists public.legal_acts (
   fetched_at         timestamptz not null default now()
 );
 
-comment on table public.legal_acts is
-  'Akty prawne z Dziennika Ustaw i Monitora Polskiego. Dane globalne, wspólne dla wszystkich klientów.';
-comment on column public.legal_acts.eli is
-  'Identyfikator European Legislation Identifier, np. DU/2026/1308. Klucz naturalny ze źródła.';
-comment on column public.legal_acts.publisher is
+comment on table public.s2app_legal_acts is
+  'Legal acts from Dziennik Ustaw and Monitor Polski. Shared data for all authenticated clients.';
+comment on column public.s2app_legal_acts.eli is
+  'European Legislation Identifier, e.g. DU/2026/1308. Natural key from the source system.';
+comment on column public.s2app_legal_acts.publisher is
   'DU = Dziennik Ustaw, MP = Monitor Polski.';
 
-create unique index if not exists legal_acts_address_idx
-  on public.legal_acts (publisher, year, position);
+create unique index if not exists s2app_legal_acts_address_idx
+  on public.s2app_legal_acts (publisher, year, position);
 
-create index if not exists legal_acts_listing_idx
-  on public.legal_acts (promulgation_date desc nulls last, position desc);
+create index if not exists s2app_legal_acts_listing_idx
+  on public.s2app_legal_acts (promulgation_date desc nulls last, position desc);
 
-alter table public.legal_acts enable row level security;
+alter table public.s2app_legal_acts enable row level security;
 
--- Odczyt: każdy zalogowany użytkownik widzi pełny listing.
--- Klauzula `to authenticated` jest tu istotna — bez niej polityka objęłaby
--- także rolę `anon`, czyli listing wyciekłby publicznie.
-drop policy if exists "legal_acts_select_authenticated" on public.legal_acts;
-create policy "legal_acts_select_authenticated"
-  on public.legal_acts
+-- Read access: every authenticated user can see the full listing.
+-- The `to authenticated` clause is critical here; without it, the policy would also
+-- apply to the `anon` role, exposing the listing publicly.
+drop policy if exists "s2app_legal_acts_select_authenticated" on public.s2app_legal_acts;
+create policy "s2app_legal_acts_select_authenticated"
+  on public.s2app_legal_acts
   for select
   to authenticated
   using (true);
 
--- Brak polityk INSERT/UPDATE/DELETE jest celowy: przy włączonym RLS brak
--- polityki oznacza brak uprawnienia. Dane wprowadza wyłącznie proces wsadowy
--- kluczem `sb_secret_…`, który RLS omija.
+-- No INSERT/UPDATE/DELETE policies are intentionally defined: with RLS enabled,
+-- missing policies means no write permissions. The data is populated only by the
+-- batch process using the `sb_secret_…` key, which bypasses RLS.
 
 
 -- -----------------------------------------------------------------------------
--- 2. NOTES — notatki prywatne, wyłącznie własne
+-- 2. s2app_notes — private notes, only for their owner
 -- -----------------------------------------------------------------------------
 
-create table if not exists public.notes (
+create table if not exists public.s2app_notes (
   id          uuid        primary key default gen_random_uuid(),
   user_id     uuid        not null default auth.uid()
                           references auth.users (id) on delete cascade,
-  act_eli     text        references public.legal_acts (eli) on delete set null,
+  act_eli     text        references public.s2app_legal_acts (eli) on delete set null,
   title       text        not null check (char_length(title) between 1 and 200),
   body        text        not null default '',
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
 
-comment on table public.notes is
-  'Dane prywatne użytkownika. Nieodtwarzalne z żadnego źródła zewnętrznego.';
+comment on table public.s2app_notes is
+  'Private user data. Not reproducible from any external source.';
 
--- Indeks pod `user_id` nie jest ozdobnikiem: każde zapytanie przechodzi przez
--- predykat RLS na tej kolumnie, więc bez indeksu każdy odczyt to pełny skan.
-create index if not exists notes_user_id_idx    on public.notes (user_id);
-create index if not exists notes_created_at_idx on public.notes (user_id, created_at desc);
+-- The `user_id` index is not ornamental: each query goes through an RLS predicate on
+-- this column, so without an index each read becomes a table scan.
+create index if not exists s2app_notes_user_id_idx    on public.s2app_notes (user_id);
+create index if not exists s2app_notes_created_at_idx on public.s2app_notes (user_id, created_at desc);
 
-alter table public.notes enable row level security;
+alter table public.s2app_notes enable row level security;
 
--- Cztery polityki, po jednej na operację.
+-- Four policies, one per operation.
 --
--- Zapis `(select auth.uid())` zamiast gołego `auth.uid()` jest świadomy:
--- w podzapytaniu planner traktuje wywołanie jako InitPlan i liczy je RAZ na
--- zapytanie, a nie raz na wiersz. Przy większych tabelach to różnica rzędu
--- wielkości w czasie odpowiedzi.
+-- Writing `(select auth.uid())` instead of raw `auth.uid()` is deliberate:
+-- in a subquery the planner treats it as an InitPlan and evaluates it once per
+-- query rather than once per row. For larger tables this can materially improve
+-- response time.
 
-drop policy if exists "notes_select_own" on public.notes;
-create policy "notes_select_own"
-  on public.notes
+drop policy if exists "s2app_notes_select_own" on public.s2app_notes;
+create policy "s2app_notes_select_own"
+  on public.s2app_notes
   for select
   to authenticated
   using ((select auth.uid()) = user_id);
 
-drop policy if exists "notes_insert_own" on public.notes;
-create policy "notes_insert_own"
-  on public.notes
+drop policy if exists "s2app_notes_insert_own" on public.s2app_notes;
+create policy "s2app_notes_insert_own"
+  on public.s2app_notes
   for insert
   to authenticated
   with check ((select auth.uid()) = user_id);
 
-drop policy if exists "notes_update_own" on public.notes;
-create policy "notes_update_own"
-  on public.notes
+drop policy if exists "s2app_notes_update_own" on public.s2app_notes;
+create policy "s2app_notes_update_own"
+  on public.s2app_notes
   for update
   to authenticated
-  using      ((select auth.uid()) = user_id)   -- które wiersze wolno ruszyć
-  with check ((select auth.uid()) = user_id);  -- i czym wolno je nadpisać
+  using      ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
 
-drop policy if exists "notes_delete_own" on public.notes;
-create policy "notes_delete_own"
-  on public.notes
+drop policy if exists "s2app_notes_delete_own" on public.s2app_notes;
+create policy "s2app_notes_delete_own"
+  on public.s2app_notes
   for delete
   to authenticated
   using ((select auth.uid()) = user_id);
 
 
 -- -----------------------------------------------------------------------------
--- 3. updated_at — utrzymywane przez bazę, nie przez klienta
+-- 3. updated_at — controlled by the database, not by the client
 -- -----------------------------------------------------------------------------
 
-create or replace function public.set_updated_at()
+create or replace function public.s2app_set_updated_at()
 returns trigger
 language plpgsql
 security invoker
@@ -154,39 +153,32 @@ begin
 end;
 $$;
 
-drop trigger if exists notes_set_updated_at on public.notes;
-create trigger notes_set_updated_at
-  before update on public.notes
+drop trigger if exists s2app_notes_set_updated_at on public.s2app_notes;
+create trigger s2app_notes_set_updated_at
+  before update on public.s2app_notes
   for each row
-  execute function public.set_updated_at();
-
-
--- -----------------------------------------------------------------------------
--- 4. Porządki po wcześniejszej wersji przykładu
--- -----------------------------------------------------------------------------
-
-drop table if exists public.tenders cascade;
+  execute function public.s2app_set_updated_at();
 
 
 -- =============================================================================
--- 5. Weryfikacja
+-- 4. Verification
 -- =============================================================================
--- Listing napełnia proces wsadowy:
+-- The listing is populated by the batch process:
 --
---   cd backend && python -m bidtiger_ingest
+--   cd backend && python -m legal_acts_ingest
 --
--- Test akceptacyjny separacji z PRD §8.4 — zapytanie o cudze notatki zwraca
--- PUSTY ZBIÓR, nie komunikat o braku uprawnień. Komunikat potwierdzałby,
--- że rekord istnieje.
+-- Acceptance test for PRD §8.4 separation: a query for someone else's notes returns
+-- an EMPTY SET, not a permission-denied error. A permission message would imply the
+-- record exists but is hidden.
 --
---   -- jako użytkownik A
---   insert into public.notes (title, body) values ('Moja notatka', 'treść');
---   select count(*) from public.notes;   -- 1
+--   -- as user A
+--   insert into public.s2app_notes (title, body) values ('My note', 'content');
+--   select count(*) from public.s2app_notes;   -- 1
 --
---   -- jako użytkownik B
---   select count(*) from public.notes;   -- 0, mimo że wiersz w tabeli jest
+--   -- as user B
+--   select count(*) from public.s2app_notes;   -- 0, even though the row exists
 --
--- Sprawdzenie, czy RLS jest włączony wszędzie, gdzie powinien:
+-- Check that RLS is enabled wherever it should be:
 --
 --   select schemaname, tablename, rowsecurity
 --   from pg_tables where schemaname = 'public';

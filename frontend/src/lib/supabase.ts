@@ -1,19 +1,16 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from './database.types'
-
-const url = import.meta.env.VITE_SUPABASE_URL?.trim()
+import { supabasePublishableKey, supabaseUrl } from './runtimeConfig'
 
 /**
- * Nowa nomenklatura kluczy Supabase: `sb_publishable_…` zastępuje starszy
- * JWT `anon`. Fallback na `VITE_SUPABASE_ANON_KEY` zostaje, żeby projekty
- * jeszcze niezmigrowane działały bez zmian w kodzie.
+ * Nowa nomenklatura kluczy Supabase: `sb_publishable_…` jest jedynym poprawnym
+ * kluczem frontendowym. W tej aplikacji nie obsługujemy starszego `anon`.
  *
  * Klucz publishable NIE jest sekretem — trafia do bundla i tak ma być.
  * Za bezpieczeństwo odpowiada Row Level Security, nie tajność klucza.
  */
-const publishableKey =
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim() ||
-  import.meta.env.VITE_SUPABASE_ANON_KEY?.trim()
+const publishableKey = supabasePublishableKey
+const url = supabaseUrl
 
 /**
  * Zabezpieczenie przed najkosztowniejszą pomyłką w tym pliku: klucz

@@ -49,7 +49,6 @@ Po starcie frontend jest dostępny pod `http://localhost:4173`.
 | ------------------------------- | -------------------------------------------------- |
 | `VITE_SUPABASE_URL`             | Supabase → Project Settings → API                  |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | tamże, klucz `sb_publishable_…`                    |
-| `VITE_SUPABASE_ANON_KEY`        | starsza nazwa; używana tylko gdy powyższa jest pusta |
 
 **Klucza `sb_secret_…` nie wolno tu podać.** Omija RLS, więc we frontendzie dawałby pełny
 dostęp do bazy. [`src/lib/supabase.ts`](./src/lib/supabase.ts) wykrywa taki klucz i rzuca
@@ -57,13 +56,15 @@ wyjątkiem przy starcie.
 
 Bez zmiennych aplikacja startuje w trybie demonstracyjnym — dane w `localStorage`.
 
+W Dockerze te zmienne są wczytywane przy starcie kontenera, nie tylko podczas buildu obrazu.
+
 ## Trasy
 
 | Trasa        | Widok                              | Dostęp           |
 | ------------ | ---------------------------------- | ---------------- |
 | `/login`     | logowanie i rejestracja            | niezalogowany    |
-| `/dashboard` | tabela aktów prawnych (Dz.U., M.P.) | każdy zalogowany |
-| `/notes`     | notatki własne                     | tylko autor      |
+| `/dashboard` | widok „Akty Prawne”                | każdy zalogowany |
+| `/notes`     | widok „Notatki”                    | tylko autor      |
 
 Przekierowania w [`App.tsx`](./src/App.tsx) są wygodą interfejsu, nie zabezpieczeniem —
 dostępu do danych broni RLS w bazie.
@@ -71,7 +72,7 @@ dostępu do danych broni RLS w bazie.
 ## Listing aktów prawnych
 
 Każdy zalogowany użytkownik widzi wspólny listing aktów prawnych z Dziennika Ustaw i Monitoru Polskiego.
-Dane pochodzą z tabeli `legal_acts` — napełnianej przez proces wsadowy `legal-acts-ingest`
+Dane pochodzą z tabeli `s2app_legal_acts` — napełnianej przez proces wsadowy `legal-acts-ingest`
 z [API ELI Sejmu](https://api.sejm.gov.pl/eli) — zob. [`backend/README.md`](../backend/README.md).
 
 | Kolumna                 | Pole                                  | Przykład                                      |

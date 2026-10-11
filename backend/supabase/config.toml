@@ -1,0 +1,7 @@
+# Minimalna konfiguracja Supabase CLI dla migracji schematu.
+# Projekt jest linkowany komendą:
+#   supabase link --project-ref <project-ref>
+
+[db]
+# Lokalny port Postgresa używany tylko przy `supabase start`.
+port = 54322

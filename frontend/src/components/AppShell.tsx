@@ -11,8 +11,8 @@ type AppShellProps = {
 }
 
 const NAV = [
-  { to: '/dashboard', label: 'Akty prawne' },
-  { to: '/notes', label: 'Moje notatki' },
+  { to: '/dashboard', label: 'Akty Prawne' },
+  { to: '/notes', label: 'Notatki' },
 ]
 
 export function AppShell({ user, isSupabaseConfigured, onSignOut, children }: AppShellProps) {
@@ -25,7 +25,7 @@ export function AppShell({ user, isSupabaseConfigured, onSignOut, children }: Ap
           <div className="flex items-center gap-3">
             <TigerMark className="h-10 w-10" />
             <span className="text-lg font-bold text-stripe-900">
-              Akty <span className="text-tiger-600">prawne</span>
+              <span className="text-tiger-600">S2 App</span>
             </span>
           </div>
 

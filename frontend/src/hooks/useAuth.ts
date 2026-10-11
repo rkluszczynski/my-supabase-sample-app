@@ -13,6 +13,11 @@ type AuthState = {
   loading: boolean
 }
 
+const toSessionUser = (email: string | null, id: string | null): SessionUser | null => {
+  if (!email || !id) return null
+  return { id, email }
+}
+
 export type AuthMode = 'signIn' | 'signUp'
 
 export function useAuth() {
@@ -30,7 +35,7 @@ export function useAuth() {
       if (!active) return
       const sessionUser = data.session?.user
       setState({
-        user: sessionUser ? { id: sessionUser.id, email: sessionUser.email ?? '' } : null,
+        user: toSessionUser(sessionUser?.email ?? null, sessionUser?.id ?? null),
         loading: false,
       })
     })
@@ -38,7 +43,7 @@ export function useAuth() {
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
       const sessionUser = session?.user
       setState({
-        user: sessionUser ? { id: sessionUser.id, email: sessionUser.email ?? '' } : null,
+        user: toSessionUser(sessionUser?.email ?? null, sessionUser?.id ?? null),
         loading: false,
       })
     })
@@ -52,7 +57,6 @@ export function useAuth() {
   const authenticate = useCallback(
     async (mode: AuthMode, email: string, password: string): Promise<string | null> => {
       if (!supabase) {
-        // Tryb demonstracyjny: bez Supabase nie weryfikujemy hasła, tylko jego długość.
         if (password.length < 8) return 'Hasło musi mieć co najmniej 8 znaków.'
         const user: SessionUser = { id: demoUserId(email), email }
         writeDemoSession(user)
@@ -76,6 +80,7 @@ export function useAuth() {
       setState({ user: null, loading: false })
       return
     }
+
     await supabase.auth.signOut()
   }, [])
 

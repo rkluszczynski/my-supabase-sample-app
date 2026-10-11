@@ -64,7 +64,7 @@ export function LoginPage({ isSupabaseConfigured, onSubmit }: LoginPageProps) {
               <TigerMark className="h-16 w-16 drop-shadow-[0_6px_14px_rgba(249,115,22,0.35)]" />
               <div>
                 <h1 className="text-2xl font-bold tracking-tight text-stripe-900">
-                  Aplikacja <span className="text-tiger-600">Supabase</span>
+                  Aplikacja <span className="text-tiger-600">Supbase Sample</span>
                 </h1>
                 <p className="mt-1 text-sm text-stripe-700/70">
                   {mode === 'signIn'
@@ -162,7 +162,7 @@ export function LoginPage({ isSupabaseConfigured, onSubmit }: LoginPageProps) {
                 <span className="font-semibold text-tiger-700">Tryb demonstracyjny.</span> Brak
                 <code className="mx-1 rounded bg-tiger-200 px-1 py-0.5 text-stripe-900">VITE_SUPABASE_URL</code>
                 i
-                <code className="mx-1 rounded bg-tiger-200 px-1 py-0.5 text-stripe-900">VITE_SUPABASE_ANON_KEY</code>
+                <code className="mx-1 rounded bg-tiger-200 px-1 py-0.5 text-stripe-900">VITE_SUPABASE_PUBLISHABLE_KEY</code>
                 — logowanie jest symulowane lokalnie.
               </p>
             )}

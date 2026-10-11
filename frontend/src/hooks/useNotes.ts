@@ -8,7 +8,7 @@ import type { Note } from '../lib/database.types'
  *
  * Zwróć uwagę, że zapytania NIE zawierają `.eq('user_id', …)`. To nie jest
  * przeoczenie: filtrowanie po stronie klienta byłoby pozorem bezpieczeństwa,
- * bo każdy może je ominąć. Zakres wymuszają polityki `notes_*_own` w bazie.
+ * bo każdy może je ominąć. Zakres wymuszają polityki `s2app_notes_*_own` w bazie.
  * `user_id` przy zapisie uzupełnia domyślna wartość kolumny `auth.uid()`.
  */
 export function useNotes(userId: string) {
@@ -24,7 +24,7 @@ export function useNotes(userId: string) {
     }
 
     const { data, error: queryError } = await supabase
-      .from('notes')
+      .from('s2app_notes')
       .select('*')
       .order('created_at', { ascending: false })
 
@@ -45,7 +45,7 @@ export function useNotes(userId: string) {
         return null
       }
 
-      const { error: insertError } = await supabase.from('notes').insert({ title, body })
+      const { error: insertError } = await supabase.from('s2app_notes').insert({ title, body })
       if (insertError) return insertError.message
       await refresh()
       return null
@@ -61,7 +61,7 @@ export function useNotes(userId: string) {
         return null
       }
 
-      const { error: deleteError } = await supabase.from('notes').delete().eq('id', id)
+      const { error: deleteError } = await supabase.from('s2app_notes').delete().eq('id', id)
       if (deleteError) return deleteError.message
       await refresh()
       return null

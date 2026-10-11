@@ -32,16 +32,16 @@ Polskim**, pobierane z [API ELI Sejmu](https://api.sejm.gov.pl/eli) i wyświetla
 
 ```
 API ELI Sejmu                legal-acts-ingest          Supabase                 React
-(Dz.U. + M.P.)   ──────►     (Python, cron)    ──────►  legal_acts    ──────►   tabela
+(Dz.U. + M.P.)   ──────►     (Python, cron)    ──────►  s2app_legal_acts    ──────►   tabela
                   HTTP        sb_secret_…       upsert   + RLS         publishable
 ```
 
 Kierunek zapisu i odczytu jest rozdzielony i to jest sedno układu:
 
-| Kto              | Klucz              | Co może                                    |
-| ---------------- | ------------------ | ------------------------------------------ |
-| proces wsadowy   | `sb_secret_…`      | zapis do `legal_acts` (omija RLS)          |
-| przeglądarka     | `sb_publishable_…` | wyłącznie odczyt, w granicach polityk RLS  |
+| Kto              | Klucz              | Co może                                              |
+| ---------------- | ------------------ | ---------------------------------------------------- |
+| proces wsadowy   | `sb_secret_…`      | zapis do `s2app_legal_acts` (omija RLS)              |
+| przeglądarka     | `sb_publishable_…` | wyłącznie odczyt, w granicach polityk RLS            |
 
 ---
 
@@ -49,11 +49,11 @@ Kierunek zapisu i odczytu jest rozdzielony i to jest sedno układu:
 
 Trzy poziomy widoczności, każdy wymuszany w innym miejscu:
 
-| Zasób                          | Kto widzi                          | Czym wymuszane                           |
-| ------------------------------ | ---------------------------------- | ---------------------------------------- |
-| Logowanie i rejestracja        | każdy, także niezalogowany         | Supabase Auth                            |
-| Listing `legal_acts`           | **każdy zalogowany**, dane wspólne | `legal_acts_select_authenticated`        |
-| Notatki `notes`                | **wyłącznie autor wiersza**        | `notes_select/insert/update/delete_own`  |
+| Zasób                                  | Kto widzi                          | Czym wymuszane                                      |
+| -------------------------------------- | ---------------------------------- | --------------------------------------------------- |
+| Logowanie i rejestracja                | każdy, także niezalogowany         | Supabase Auth                                       |
+| Listing `s2app_legal_acts`             | **każdy zalogowany**, dane wspólne | `s2app_legal_acts_select_authenticated`            |
+| Notatki `s2app_notes`                  | **wyłącznie autor wiersza**        | `s2app_notes_select/insert/update/delete_own`       |
 
 Rzecz, którą trzeba czytać dosłownie: **routing we frontendzie nie jest zabezpieczeniem.**
 Przekierowanie niezalogowanego na `/login` jest wygodą interfejsu. Danych broni wyłącznie
@@ -103,10 +103,10 @@ Pełna migracja: [`backend/supabase/migrations/0001_init.sql`](./backend/supabas
 ### Listing wspólny dla zalogowanych
 
 ```sql
-alter table public.legal_acts enable row level security;
+alter table public.s2app_legal_acts enable row level security;
 
-create policy "legal_acts_select_authenticated"
-  on public.legal_acts for select
+create policy "s2app_legal_acts_select_authenticated"
+  on public.s2app_legal_acts for select
   to authenticated          -- rola 'anon' nie przechodzi
   using (true);
 ```
@@ -117,17 +117,17 @@ oznacza brak uprawnienia**. Dane wprowadza wyłącznie proces wsadowy kluczem `s
 ### Notatki wyłącznie własne
 
 ```sql
-create policy "notes_select_own" on public.notes for select
+create policy "s2app_notes_select_own" on public.s2app_notes for select
   to authenticated using ((select auth.uid()) = user_id);
 
-create policy "notes_insert_own" on public.notes for insert
+create policy "s2app_notes_insert_own" on public.s2app_notes for insert
   to authenticated with check ((select auth.uid()) = user_id);
 
-create policy "notes_update_own" on public.notes for update
+create policy "s2app_notes_update_own" on public.s2app_notes for update
   to authenticated using      ((select auth.uid()) = user_id)
                   with check ((select auth.uid()) = user_id);
 
-create policy "notes_delete_own" on public.notes for delete
+create policy "s2app_notes_delete_own" on public.s2app_notes for delete
   to authenticated using ((select auth.uid()) = user_id);
 ```
 
@@ -154,11 +154,11 @@ Wprost z [`PRD.md`](../documentation/00_PRD/PRD.md) §8.4 — zapytanie o cudze 
 
 ```sql
 -- jako użytkownik A
-insert into public.notes (title, body) values ('Moja notatka', 'treść');
-select count(*) from public.notes;   -- 1
+insert into public.s2app_notes (title, body) values ('Moja notatka', 'treść');
+select count(*) from public.s2app_notes;   -- 1
 
 -- jako użytkownik B
-select count(*) from public.notes;   -- 0, mimo że wiersz w tabeli jest
+select count(*) from public.s2app_notes;   -- 0, mimo że wiersz w tabeli jest
 ```
 
 ---
@@ -312,8 +312,8 @@ wypisuje tabelę, nie zapisuje niczego i nie wymaga kluczy.
 | Trasa        | Widok                                        | Dostęp            |
 | ------------ | -------------------------------------------- | ----------------- |
 | `/login`     | logowanie i rejestracja, kolorystyka tygrysa | niezalogowany     |
-| `/dashboard` | tabela aktów prawnych                        | każdy zalogowany  |
-| `/notes`     | notatki własne — dodawanie i usuwanie        | tylko autor       |
+| `/dashboard` | widok „Akty Prawne”                          | każdy zalogowany  |
+| `/notes`     | widok „Notatki” — dodawanie i usuwanie       | tylko autor       |
 
 ### Kolumny listingu
 

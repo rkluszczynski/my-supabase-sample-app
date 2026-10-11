@@ -11,7 +11,9 @@ from .models import LegalAct
 
 log = logging.getLogger(__name__)
 
-TABLE = "legal_acts"
+TABLE = "s2app_legal_acts"
+LEGACY_TABLE = "legal_acts"
+TABLE_CANDIDATES = (TABLE, LEGACY_TABLE)
 CHUNK_SIZE = 200
 
 
@@ -37,17 +39,55 @@ class LegalActsRepository:
         timeout: float = 30.0,
         session: requests.Session | None = None,
     ) -> None:
-        self.endpoint = f"{supabase_url.rstrip('/')}/rest/v1/{TABLE}"
+        self.base_url = supabase_url.rstrip('/')
         self.timeout = timeout
         self.session = session or requests.Session()
         self.session.headers.update(
             {
-                "apikey": secret_key,
-                "Authorization": f"Bearer {secret_key}",
-                "Content-Type": "application/json",
-                "Prefer": "resolution=merge-duplicates,return=minimal",
+                'apikey': secret_key,
+                'Authorization': f'Bearer {secret_key}',
+                'Content-Type': 'application/json',
+                'Prefer': 'resolution=merge-duplicates,return=minimal',
             }
         )
+        self.table = TABLE
+        self.endpoint = f'{self.base_url}/rest/v1/{self.table}'
+
+    def _post_with_fallback(self, chunk: Sequence[LegalAct]) -> requests.Response:
+        last_response: requests.Response | None = None
+
+        for table_name in TABLE_CANDIDATES:
+            endpoint = f'{self.base_url}/rest/v1/{table_name}'
+            response = self.session.post(
+                endpoint,
+                params={'on_conflict': 'eli'},
+                json=[act.to_row() for act in chunk],
+                timeout=self.timeout,
+            )
+            last_response = response
+
+            if response.ok:
+                self.table = table_name
+                self.endpoint = endpoint
+                return response
+
+            if response.status_code != 404:
+                return response
+
+            error_text = response.text.lower()
+            if 'could not find the table' not in error_text:
+                return response
+
+            log.warning(
+                'Table %s not found in Supabase schema cache; retrying with %s',
+                table_name,
+                LEGACY_TABLE if table_name == TABLE else TABLE,
+            )
+
+        if last_response is not None:
+            return last_response
+
+        raise SupabaseError('No valid table candidate found for Supabase upsert.')
 
     def upsert(self, acts: Sequence[LegalAct]) -> int:
         if not acts:
@@ -56,20 +96,15 @@ class LegalActsRepository:
         written = 0
         for start in range(0, len(acts), CHUNK_SIZE):
             chunk = acts[start : start + CHUNK_SIZE]
-            response = self.session.post(
-                self.endpoint,
-                params={"on_conflict": "eli"},
-                json=[act.to_row() for act in chunk],
-                timeout=self.timeout,
-            )
+            response = self._post_with_fallback(chunk)
 
             if not response.ok:
                 raise SupabaseError(
-                    f"HTTP {response.status_code} przy zapisie {len(chunk)} wierszy: "
-                    f"{response.text[:300]}"
+                    f'HTTP {response.status_code} przy zapisie {len(chunk)} wierszy: '
+                    f'{response.text[:300]}'
                 )
 
             written += len(chunk)
-            log.info("Zapisano %s/%s wierszy", written, len(acts))
+            log.info('Zapisano %s/%s wierszy', written, len(acts))
 
         return written

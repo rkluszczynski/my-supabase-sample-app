@@ -13,7 +13,7 @@ PUBLISHER_LABELS = {
 
 @dataclass(frozen=True)
 class LegalAct:
-    """Jeden akt prawny — odwzorowanie wiersza tabeli `public.legal_acts`."""
+    """Jeden akt prawny — odwzorowanie wiersza tabeli `public.s2app_legal_acts`."""
 
     eli: str
     publisher: str

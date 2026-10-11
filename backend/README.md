@@ -15,10 +15,12 @@ Pełny opis modelu dostępu i kluczy: [`README.md`](../README.md) w katalogu nad
 
 | Ścieżka                             | Co zawiera                                          |
 | ----------------------------------- | --------------------------------------------------- |
-| `supabase/migrations/0001_init.sql` | tabele `legal_acts` i `notes`, RLS, trigger          |
-| `src/legal_acts_ingest/`            | aplikacja pobierająca                               |
+| `supabase/config.toml`              | minimalna konfiguracja Supabase CLI                      |
+| `supabase/migrations/0001_init.sql` | tabele `s2app_legal_acts` i `s2app_notes`, RLS, trigger |
+| `src/legal_acts_ingest/`            | aplikacja pobierająca                                   |
 | `tests/`                            | testy jednostkowe mapowania i konfiguracji           |
 | `run_ingest.sh`                     | opakowanie pod crona                                 |
+| `setup_db.sh`                       | linkowanie projektu i `supabase db push`            |
 | `.env.example`                      | `SUPABASE_SECRET_KEY` i parametry pobierania         |
 
 ---
@@ -32,14 +34,43 @@ Skrypt jest idempotentny, można go powtórzyć. Albo przez Supabase CLI:
 supabase db push
 ```
 
+Minimalny setup pod CLI jest już w repo:
+
+- `supabase/config.toml` — konfiguracja katalogu `supabase/`
+- `setup_db.sh` — linkuje projekt i wykonuje `supabase db push`
+
+Przykładowe użycie:
+
+```bash
+cd backend
+supabase login
+./setup_db.sh <project-ref>
+```
+
+albo:
+
+```bash
+cd backend
+./setup_db.sh
+```
+
+W tym wariancie skrypt bierze `project ref` automatycznie z:
+
+```bash
+SUPABASE_URL=https://<project-ref>.supabase.co
+```
+
+Skrypt nie tworzy tabel „ręcznie” we własnym kodzie — deleguje to do Supabase CLI, które
+czyta wszystkie pliki z `supabase/migrations/` i stosuje je w odpowiedniej kolejności.
+
 ### Polityki w skrócie
 
-| Tabela       | SELECT               | INSERT / UPDATE / DELETE         |
-| ------------ | -------------------- | -------------------------------- |
-| `legal_acts` | każdy zalogowany     | brak polityki → brak uprawnienia |
-| `notes`      | tylko własne wiersze | tylko własne wiersze             |
+| Tabela                  | SELECT               | INSERT / UPDATE / DELETE         |
+| ----------------------- | -------------------- | -------------------------------- |
+| `s2app_legal_acts`      | każdy zalogowany     | brak polityki → brak uprawnienia |
+| `s2app_notes`           | tylko własne wiersze | tylko własne wiersze             |
 
-Dane do `legal_acts` wprowadza wyłącznie proces wsadowy kluczem `sb_secret_…`,
+Dane do `s2app_legal_acts` wprowadza wyłącznie proces wsadowy kluczem `sb_secret_…`,
 który RLS omija. To dlatego brak polityk zapisu nie jest przeoczeniem.
 
 ---

@@ -44,13 +44,13 @@ export type NoteInsert = {
 export type Database = {
   public: {
     Tables: {
-      legal_acts: {
+      s2app_legal_acts: {
         Row: LegalAct
         Insert: Omit<LegalAct, 'fetched_at'>
         Update: Partial<Omit<LegalAct, 'eli'>>
         Relationships: []
       }
-      notes: {
+      s2app_notes: {
         Row: Note
         Insert: NoteInsert & { user_id?: string }
         Update: Partial<NoteInsert>
