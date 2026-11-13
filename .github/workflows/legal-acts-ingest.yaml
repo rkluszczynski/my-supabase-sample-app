@@ -1,0 +1,42 @@
+name: Legal Acts Ingest (daily)
+
+on:
+  schedule:
+    - cron: '30 2 * * *' # daily at 02:30 UTC (03:30 CET in winter, 04:30 CEST in summer)
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Preview only (--dry-run), no writes to Supabase'
+        type: boolean
+        default: false
+
+concurrency:
+  group: legal-acts-ingest
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      IMAGE: my-supabase-sample-app:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -f Dockerfile -t "$IMAGE" .
+
+      - name: Run legal-acts-ingest
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          DRY_RUN: ${{ inputs.dry_run && '--dry-run' || '' }}
+        run: |
+          docker run --rm \
+            -e SUPABASE_URL \
+            -e SUPABASE_SECRET_KEY \
+            "$IMAGE" \
+            legal-acts-ingest --format none --verbose $DRY_RUN
