@@ -5,9 +5,9 @@ set -euo pipefail
 SCRIPTS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 REPO_ROOT="$(cd "${SCRIPTS_DIR}" && pwd)"
 
-DOCKER_IMAGE_NAME=my-supbase-sample
+DOCKER_IMAGE_NAME=my-supabase-sample-app
 DOCKER_IMAGE_PATH=rkluszczynski/${DOCKER_IMAGE_NAME}
-DOCKER_IMAGE_TAG=dev
+DOCKER_IMAGE_TAG=latest
 
 docker stop "${DOCKER_IMAGE_NAME}" 2>/dev/null || true
 docker rm --force "${DOCKER_IMAGE_NAME}" 2>/dev/null || true
